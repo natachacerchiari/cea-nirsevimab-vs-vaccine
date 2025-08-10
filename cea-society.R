@@ -98,9 +98,8 @@ discounted_yll <- calculate_discounted_yll()
 
 # Calcula os custos totais (diretos e indiretos) e os DALYs para um subgrupo populacional,
 # considerando a efetividade de uma intervenção na redução de casos.
-calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effectiveness_lrti = 0, intervencao) {
+calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effectiveness_lrti = 0) {
   hosp_cases <- population * params$hosp_rate * (1 - effectiveness_hosp)
-  cat(sprintf("Hops_cases %s (%s): %.2f\n", intervencao, params$age_group, hosp_cases))
   outpatient_cases <- population * params$outpatient_rate * (1 - effectiveness_lrti)
 
   deaths <- hosp_cases * params$lethality
@@ -134,16 +133,14 @@ run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, ef
         population = age_group_population * coverage,
         params = cur_data(),
         effectiveness_hosp = .data[[effectiveness_hosp_col]],
-        effectiveness_lrti = .data[[effectiveness_lrti_col]],
-        intervencao = "com intervenção"
+        effectiveness_lrti = .data[[effectiveness_lrti_col]]
       )),
       # Resultados para o grupo que NÃO recebe a intervenção
       untreated_outcomes = list(calculate_outcomes(
         population = age_group_population * (1 - coverage),
         params = cur_data(),
         effectiveness_hosp = 0,
-        effectiveness_lrti = 0,
-        intervencao = "sem intervenção"
+        effectiveness_lrti = 0
       ))
     ) %>%
     ungroup()
