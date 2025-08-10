@@ -39,13 +39,32 @@ vaccine_administration_cost <- 2.59
 vaccine_wastage_rate <- 0.05
 vaccine_cost <- vaccine_dose_price * (1 + vaccine_wastage_rate) + vaccine_administration_cost
 
-# Parâmetros por Faixa Etária
-age_group_params <- tribble(
-  ~age_group, ~prop, ~hosp_rate, ~outpatient_rate, ~lethality, ~vaccine_eff_hosp, ~vaccine_eff_malrti, ~inpatient_cost, ~nirsevimab_eff_hosp, ~nirsevimab_eff_malrti,
-  "0-3-months-old", 0.260518452, 0.02768, 0.09382, 0.0088, 0.697, 0.576, 585.2959519, 0.7641, 0.701,
-  "3-6-months-old", 0.26290344, 0.02095, 0.07065, 0.0074, 0.4276, 0.4105, 426.0104609, 0.7641, 0.701,
-  "6-12-months-old", 0.476578108, 0.01083, 0.07347, 0.0040, 0, 0, 318.7895391, 0, 0
+# Parâmetros por faixa etária
+base_age_params <- tribble(
+  ~age_group, ~prop, ~hosp_rate, ~outpatient_rate, ~lethality, ~inpatient_cost,
+  "0-3-months-old", 0.260518452, 0.02768, 0.09382, 0.0088, 585.2959519,
+  "3-6-months-old", 0.26290344, 0.02095, 0.07065, 0.0074, 426.0104609,
+  "6-12-months-old", 0.476578108, 0.01083, 0.07347, 0.0040, 318.7895391
 )
+
+# Parâmetros por faixa etária específicos Nirsevimab
+nirsevimab_eff_params <- tribble(
+  ~age_group, ~eff_hosp, ~eff_malrti,
+  "0-3-months-old", 0.7641, 0.701,
+  "3-6-months-old", 0.7641, 0.701,
+  "6-12-months-old", 0, 0
+)
+
+# Parâmetros por faixa etária específicos Vacina
+vaccine_eff_params <- tribble(
+  ~age_group, ~eff_hosp, ~eff_malrti,
+  "0-3-months-old", 0.697, 0.576,
+  "3-6-months-old", 0.4276, 0.4105,
+  "6-12-months-old", 0, 0
+)
+
+nirsevimab_age_group_params <- left_join(base_age_params, nirsevimab_eff_params, by = "age_group")
+vaccine_age_group_params <- left_join(base_age_params, vaccine_eff_params, by = "age_group")
 
 # Função para calcular YLLs (Years of Life Lost) descontados - expectativa de vida: 76.4 anos
 calculate_discounted_yll <- function(discount_rate = 0.05, years = 76, final_year_factor = 0.4) {
@@ -88,8 +107,8 @@ calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effec
 # Executa um cenário completo para uma intervenção. A função calcula os custos
 # totais (custos da intervenção + custos médicos) e os DALYs totais para a
 # coorte inteira, considerando os indivíduos tratados e não tratados.
-run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, effectiveness_malrti_col) {
-  results_by_age <- age_group_params %>%
+run_scenario <- function(age_params, coverage, intervention_cost) {
+  results_by_age <- age_params %>%
     rowwise() %>%
     mutate(
       age_group_population = cohort * prop,
@@ -97,8 +116,8 @@ run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, ef
       treated_outcomes = list(calculate_outcomes(
         population = age_group_population * coverage,
         params = cur_data(),
-        effectiveness_hosp = .data[[effectiveness_hosp_col]],
-        effectiveness_malrti = .data[[effectiveness_malrti_col]]
+        effectiveness_hosp = eff_hosp,
+        effectiveness_malrti = eff_malrti
       )),
       # Resultados para o grupo que NÃO recebe a intervenção
       untreated_outcomes = list(calculate_outcomes(
@@ -133,18 +152,16 @@ run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, ef
 
 # 3.1. Cenário Nirsevimab (Intervenção)
 nirsevimab_scenario_results <- run_scenario(
+  age_params = nirsevimab_age_group_params,
   coverage = nirsevimab_coverage,
-  intervention_cost = nirsevimab_cost,
-  effectiveness_hosp_col = "nirsevimab_eff_hosp",
-  effectiveness_malrti_col = "nirsevimab_eff_malrti"
+  intervention_cost = nirsevimab_cost
 )
 
 # 3.2. Cenário Vacina (Comparador)
 vaccine_scenario_results <- run_scenario(
+  age_params = vaccine_age_group_params,
   coverage = vaccine_coverage,
-  intervention_cost = vaccine_cost,
-  effectiveness_hosp_col = "vaccine_eff_hosp",
-  effectiveness_malrti_col = "vaccine_eff_malrti"
+  intervention_cost = vaccine_cost
 )
 
 # --- 4. RESULTADOS ---
