@@ -1,0 +1,162 @@
+{
+  "root": {
+    "innerNodes": {
+      "scenarioNirsevimab": {
+        "innerNodes": {
+          "tookNirsevimab": {
+            "innerNodes": {
+              "0-3-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "3-6-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "6-12-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              }
+            }
+          },
+          "didNotTakeNirsevimab": {
+            "innerNodes": {
+              "0-3-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "3-6-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "6-12-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              }
+            }
+          }
+        }
+      },
+      "scenarioVaccine": {
+        "innerNodes": {
+          "vaccinated": {
+            "innerNodes": {
+              "0-3-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "3-6-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "6-12-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              }
+            }
+          },
+          "unvaccinated": {
+            "innerNodes": {
+              "0-3-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "3-6-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              },
+              "6-12-months-old": {
+                "innerNodes": {
+                  "outpatient": {
+                    "leaves": ["cured"]
+                  },
+                  "inpatient": {
+                    "leaves": ["cured", "died"]
+                  }
+                },
+                "leaves": ["healthy"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
