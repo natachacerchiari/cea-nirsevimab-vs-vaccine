@@ -39,15 +39,9 @@ vaccine_administration_cost <- 2.59
 vaccine_wastage_rate <- 0.05
 vaccine_cost <- vaccine_dose_price * (1 + vaccine_wastage_rate) + vaccine_administration_cost
 
-# SIGNIFICADOS DE VARIÁVEIS:
-# ve_hospitalization: efetividade da vacina em evitar hospitalização
-# ve_malrti: efetividade da vacina em evitar malrti
-# ne_hospitalization: efetividade do nirsevimab em evitar hospitalização
-# ne_malrti: efetividade do nirsevimab em evitar malrti
-
 # Parâmetros por Faixa Etária
 age_group_params <- tribble(
-  ~age_group, ~prop, ~hosp_rate, ~outpatient_rate, ~lethality, ~ve_hospitalization, ~ve_malrti, ~inpatient_cost, ~ne_hospitalization, ~ne_malrti,
+  ~age_group, ~prop, ~hosp_rate, ~outpatient_rate, ~lethality, ~vaccine_eff_hosp, ~vaccine_eff_malrti, ~inpatient_cost, ~nirsevimab_eff_hosp, ~nirsevimab_eff_malrti,
   "0-3-months-old", 0.260518452, 0.02768, 0.09382, 0.0088, 0.697, 0.576, 585.2959519, 0.7641, 0.701,
   "3-6-months-old", 0.26290344, 0.02095, 0.07065, 0.0074, 0.4276, 0.4105, 426.0104609, 0.7641, 0.701,
   "6-12-months-old", 0.476578108, 0.01083, 0.07347, 0.0040, 0, 0, 318.7895391, 0, 0
@@ -69,9 +63,9 @@ discounted_yll <- calculate_discounted_yll()
 
 # Calcula os custos médicos diretos (DMC) e os DALYs para um subgrupo populacional,
 # considerando a efetividade de uma intervenção na redução de casos.
-calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effectiveness_lrti = 0) {
+calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effectiveness_malrti = 0) {
   hosp_cases <- population * params$hosp_rate * (1 - effectiveness_hosp)
-  outpatient_cases <- population * params$outpatient_rate * (1 - effectiveness_lrti)
+  outpatient_cases <- population * params$outpatient_rate * (1 - effectiveness_malrti)
 
   deaths <- hosp_cases * params$lethality
   hosp_cured <- hosp_cases - deaths
@@ -94,7 +88,7 @@ calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effec
 # Executa um cenário completo para uma intervenção. A função calcula os custos
 # totais (custos da intervenção + custos médicos) e os DALYs totais para a
 # coorte inteira, considerando os indivíduos tratados e não tratados.
-run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, effectiveness_lrti_col) {
+run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, effectiveness_malrti_col) {
   results_by_age <- age_group_params %>%
     rowwise() %>%
     mutate(
@@ -104,14 +98,14 @@ run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, ef
         population = age_group_population * coverage,
         params = cur_data(),
         effectiveness_hosp = .data[[effectiveness_hosp_col]],
-        effectiveness_lrti = .data[[effectiveness_lrti_col]]
+        effectiveness_malrti = .data[[effectiveness_malrti_col]]
       )),
       # Resultados para o grupo que NÃO recebe a intervenção
       untreated_outcomes = list(calculate_outcomes(
         population = age_group_population * (1 - coverage),
         params = cur_data(),
         effectiveness_hosp = 0,
-        effectiveness_lrti = 0
+        effectiveness_malrti = 0
       ))
     ) %>%
     ungroup()
@@ -141,16 +135,16 @@ run_scenario <- function(coverage, intervention_cost, effectiveness_hosp_col, ef
 nirsevimab_scenario_results <- run_scenario(
   coverage = nirsevimab_coverage,
   intervention_cost = nirsevimab_cost,
-  effectiveness_hosp_col = "ne_hospitalization",
-  effectiveness_lrti_col = "ne_malrti"
+  effectiveness_hosp_col = "nirsevimab_eff_hosp",
+  effectiveness_malrti_col = "nirsevimab_eff_malrti"
 )
 
 # 3.2. Cenário Vacina (Comparador)
 vaccine_scenario_results <- run_scenario(
   coverage = vaccine_coverage,
   intervention_cost = vaccine_cost,
-  effectiveness_hosp_col = "ve_hospitalization",
-  effectiveness_lrti_col = "ve_malrti"
+  effectiveness_hosp_col = "vaccine_eff_hosp",
+  effectiveness_malrti_col = "vaccine_eff_malrti"
 )
 
 # --- 4. RESULTADOS ---
