@@ -32,7 +32,7 @@ avg_consultations_per_patient <- 1.5
 mother_mean_daily_salary <- 23.9238
 
 # Parâmetros específicos Nirsevimab (Intervenção)
-nirsevimab_coverage <- 0.909
+nirsevimab_coverage <- 0.8826
 nirsevimab_dose_price <- 255.15
 nirsevimab_administration_cost <- 2.59
 nirsevimab_wastage_rate <- 0.05
@@ -74,12 +74,16 @@ age_group_params <- tribble(
       TRUE ~ 0
     )
   ) %>%
+  # Calcula os custos diretos não médicos por caso
+  mutate(
+    outpatient_transport_cost = avg_consultations_per_patient * trips_per_consultation * transport_cost_per_trip,
+    inpatient_transport_cost = (mother_inpatient_visits + avg_consultations_per_patient) * trips_per_consultation * transport_cost_per_trip
+  ) %>%
+  
   # Calcula os custos indiretos por caso
   mutate(
     outpatient_salary_loss = duration_illness_outpatient * mother_mean_daily_salary * proportion_no_maternity_leave,
-    outpatient_transport_cost = avg_consultations_per_patient * trips_per_consultation * transport_cost_per_trip,
     inpatient_salary_loss = duration_illness_hosp * mother_mean_daily_salary * proportion_no_maternity_leave,
-    inpatient_transport_cost = (mother_inpatient_visits + avg_consultations_per_patient) * trips_per_consultation * transport_cost_per_trip
   )
 
 # Função para calcular YLLs (Years of Life Lost) descontados - expectativa de vida: 76.4 anos
@@ -101,9 +105,11 @@ discounted_yll <- calculate_discounted_yll()
 calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effectiveness_lrti = 0) {
   hosp_cases <- population * params$hosp_rate * (1 - effectiveness_hosp)
   outpatient_cases <- population * params$outpatient_rate * (1 - effectiveness_lrti)
+  # cat(sprintf("Out_cases %s (%s): %.2f\n", intervencao, params$age_group, outpatient_cases))
 
   deaths <- hosp_cases * params$lethality
   hosp_cured <- hosp_cases - deaths
+  # cat(sprintf("deaths %s (%s): %.2f\n", intervencao, params$age_group, deaths))
 
   inpatient_cost_total <- hosp_cases * (params$inpatient_cost + pcr_cost_dollar + outpatient_cost_ec + params$inpatient_salary_loss + params$inpatient_transport_cost)
   outpatient_cost_total <- outpatient_cases * (outpatient_cost + params$outpatient_salary_loss + params$outpatient_transport_cost)
@@ -113,8 +119,9 @@ calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effec
   daly_outpatient <- outpatient_cases * daly_moderate * (duration_illness_outpatient / days_in_year)
   daly_death_morbidity <- deaths * daly_severe * (duration_illness_hosp / days_in_year)
   daly_death_yll <- deaths * discounted_yll
+  # cat(sprintf("YLL: %.2f\n", daly_death_yll))
   daly_deaths <- daly_death_morbidity + daly_death_yll
-
+  
   total_dalys <- daly_hosp_cured + daly_outpatient + daly_deaths
 
   return(list(cost = total_cost, dalys = total_dalys))

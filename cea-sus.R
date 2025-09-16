@@ -17,7 +17,7 @@ duration_illness_hosp <- 10
 duration_illness_outpatient <- 5
 days_in_year <- 365.25
 
-# Parâmetros de Custo
+# Parâmetros de Custo Direto Médico
 outpatient_cost <- 13.45
 outpatient_cost_ec <- 17.30
 pcr_hcv <- 2.66 * 96.00
@@ -25,8 +25,13 @@ gal_adj <- 56254 / 45357
 pcr_cost <- pcr_hcv * gal_adj
 pcr_cost_dollar <- pcr_cost / 4.99
 
+# Parâmetros de Custo Direto Não Médico 
+trips_per_consultation <- 2
+transport_cost_per_trip <- 0.9299
+avg_consultations_per_patient <- 1.5
+
 # Parâmetros específicos Nirsevimab (Intervenção)
-nirsevimab_coverage <- 0.909
+nirsevimab_coverage <- 0.8826
 nirsevimab_dose_price <- 255.15
 nirsevimab_administration_cost <- 2.59
 nirsevimab_wastage_rate <- 0.05
@@ -45,8 +50,21 @@ base_age_params <- tribble(
   "0-3-months-old", 0.260518452, 0.02768, 0.09382, 0.0088, 585.2959519,
   "3-6-months-old", 0.26290344, 0.02095, 0.07065, 0.0074, 426.0104609,
   "6-12-months-old", 0.476578108, 0.01083, 0.07347, 0.0040, 318.7895391
-)
-
+)%>%
+  mutate(
+    # Número de comparecimentos da mãe em casos de internação
+    mother_inpatient_visits = case_when(
+      age_group == "0-3-months-old"  ~ 5.59,
+      age_group == "3-6-months-old"  ~ 5.05,
+      age_group == "6-12-months-old" ~ 4.49,
+      TRUE ~ 0
+    )
+  ) %>%
+  # Calcula os custos diretos não médicos por caso
+  mutate(
+    outpatient_transport_cost = avg_consultations_per_patient * trips_per_consultation * transport_cost_per_trip,
+    inpatient_transport_cost = (mother_inpatient_visits + avg_consultations_per_patient) * trips_per_consultation * transport_cost_per_trip
+  )
 # Parâmetros por faixa etária específicos Nirsevimab
 nirsevimab_eff_params <- tribble(
   ~age_group, ~eff_hosp, ~eff_malrti,
@@ -80,7 +98,7 @@ discounted_yll <- calculate_discounted_yll()
 
 # --- 2. FUNÇÕES AUXILIARES ---
 
-# Calcula os custos médicos diretos (DMC) e os DALYs para um subgrupo populacional,
+# Calcula os custos diretos (dc) e os DALYs para um subgrupo populacional,
 # considerando a efetividade de uma intervenção na redução de casos.
 calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effectiveness_malrti = 0) {
   hosp_cases <- population * params$hosp_rate * (1 - effectiveness_hosp)
@@ -89,20 +107,22 @@ calculate_outcomes <- function(population, params, effectiveness_hosp = 0, effec
   deaths <- hosp_cases * params$lethality
   hosp_cured <- hosp_cases - deaths
 
-  inpatient_cost_total <- hosp_cases * (params$inpatient_cost + pcr_cost_dollar + outpatient_cost_ec)
-  outpatient_cost_total <- outpatient_cases * outpatient_cost
-  total_dmc <- inpatient_cost_total + outpatient_cost_total
+  inpatient_cost_total <- hosp_cases * (params$inpatient_cost + pcr_cost_dollar + outpatient_cost_ec + params$inpatient_transport_cost)
+  outpatient_cost_total <- outpatient_cases * (outpatient_cost + params$outpatient_transport_cost)
+  total_dc <- inpatient_cost_total + outpatient_cost_total
 
   daly_hosp_cured <- hosp_cured * daly_severe * (duration_illness_hosp / days_in_year)
   daly_outpatient <- outpatient_cases * daly_moderate * (duration_illness_outpatient / days_in_year)
   daly_death_morbidity <- deaths * daly_severe * (duration_illness_hosp / days_in_year)
   daly_death_yll <- deaths * discounted_yll
+  # cat(sprintf("YLL: %.2f\n", daly_death_yll))
   daly_deaths <- daly_death_morbidity + daly_death_yll
 
   total_dalys <- daly_hosp_cured + daly_outpatient + daly_deaths
+  # cat(sprintf("Número de DALYs evitados:            %.2f\n\n", total_dalys))
 
-  return(list(cost = total_dmc, dalys = total_dalys))
-}
+  return(list(cost = total_dc, dalys = total_dalys))
+  }
 
 # Executa um cenário completo para uma intervenção. A função calcula os custos
 # totais (custos da intervenção + custos médicos) e os DALYs totais para a
@@ -130,18 +150,22 @@ run_scenario <- function(age_params, coverage, intervention_cost) {
     ungroup()
 
   # Soma os custos médicos diretos (DMC) da doença
-  total_dmc <- sum(sapply(results_by_age$treated_outcomes, `[[`, "cost")) +
+  total_dc <- sum(sapply(results_by_age$treated_outcomes, `[[`, "cost")) +
     sum(sapply(results_by_age$untreated_outcomes, `[[`, "cost"))
 
   # Calcula o custo da própria intervenção
   total_intervention_cost <- cohort * coverage * intervention_cost
+  cat(sprintf("Custo da intervenção: %.2f\n\n", total_intervention_cost))
 
   # Custo total para o cenário
-  total_scenario_cost <- total_dmc + total_intervention_cost
+  total_scenario_cost <- total_dc + total_intervention_cost
+  cat(sprintf("Custo do cenário: %.2f\n\n", total_scenario_cost))
 
   # Soma os DALYs
   total_scenario_dalys <- sum(sapply(results_by_age$treated_outcomes, `[[`, "dalys")) +
     sum(sapply(results_by_age$untreated_outcomes, `[[`, "dalys"))
+    # cat(sprintf("Número de DALYs evitados: %.2f\n\n", total_scenario_dalys))
+    
 
   return(list(cost = total_scenario_cost, dalys = total_scenario_dalys))
 }
