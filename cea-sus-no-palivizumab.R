@@ -64,7 +64,7 @@ base_age_params <- tribble(
   mutate(
     outpatient_transport_cost = avg_consultations_per_patient * trips_per_consultation * transport_cost_per_trip,
     inpatient_transport_cost = (mother_inpatient_visits + avg_consultations_per_patient) * trips_per_consultation * transport_cost_per_trip
-)
+  )
 
 # Parâmetros por faixa etária específicos Nirsevimab
 nirsevimab_eff_params <- tribble(
