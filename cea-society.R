@@ -17,7 +17,7 @@ duration_illness_hosp <- 10
 duration_illness_outpatient <- 5
 days_in_year <- 365.25
 
-# Parâmetros de Custo Direto
+# Parâmetros de Custo Direto Médico
 outpatient_cost <- 13.45
 outpatient_cost_ec <- 17.30
 pcr_hcv <- 2.66 * 96.00
@@ -25,10 +25,12 @@ gal_adj <- 56254 / 45357
 pcr_cost <- pcr_hcv * gal_adj
 pcr_cost_dollar <- pcr_cost / 4.99
 
-# Parâmetros de Custo Indireto
+# Parâmetros de Custo Direto Não Médico 
 trips_per_consultation <- 2
 transport_cost_per_trip <- 0.9299
 avg_consultations_per_patient <- 1.5
+
+# Parâmetros de Custo Indireto
 mother_mean_daily_salary <- 23.9238
 
 # Parâmetros específicos Nirsevimab (Intervenção)
